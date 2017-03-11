@@ -178,14 +178,13 @@ SetInterfaceInfo(char* dev_name_list)
 
 		/* initialize the rte env first, what a waste of implementation effort!  */
 		char *argv[] = {"", 
-				"-c", 
-				cpumaskbuf, 
-				"-n", 
-				mem_channels,
-				"--proc-type=auto",
-				""
+						"-c",
+						cpumaskbuf,
+						//"--proc-type=auto",
+						//"--vdev=net_pcap0,iface=eth1",
+						""
 		};
-		const int argc = 6;
+		const int argc = 3;
 
 		/* 
 		 * re-set getopt extern variable optind.
@@ -209,83 +208,23 @@ SetInterfaceInfo(char* dev_name_list)
 		}
 		
 		/* get mac addr entries of 'detected' dpdk ports */
-		for (ret = 0; ret < num_devices; ret++)
+		for (ret = 0; ret < num_devices; ret++) {
 			rte_eth_macaddr_get(ret, &ports_eth_addr[ret]);
-		
+		}
+
 		num_queues = MIN(CONFIG.num_cores, MAX_CPUS);
 
-		struct ifaddrs *ifap;
-		struct ifaddrs *iter_if;
-		char *seek;
+		eidx = CONFIG.eths_num++;
+		struct eth_table* eth = &(CONFIG.eths[eidx]);
+		strcpy(eth->dev_name, "dpdk0");
+		eth->ifindex = 0;
+		eth->stat_print = 0;
+		memcpy(&eth->haddr[0], &ports_eth_addr[eidx], ETH_ALEN);
+		eth->netmask = 0xffffff;
+		eth->ip_addr = inet_addr("10.0.0.2");
+		devices_attached[num_devices_attached] = 0;
+		num_devices_attached ++;
 
-		if (getifaddrs(&ifap) != 0) {
-			perror("getifaddrs: ");
-			exit(EXIT_FAILURE);
-		}
-		
-		iter_if = ifap;
-		do {
-			if (iter_if->ifa_addr->sa_family == AF_INET &&
-			    !set_all_inf && 
-			    (seek=strstr(dev_name_list, iter_if->ifa_name)) != NULL &&
-			    /* check if the interface was not aliased */
-			    *(seek + strlen(iter_if->ifa_name)) != ':') {
-				struct ifreq ifr;
-				
-				/* Setting informations */
-				eidx = CONFIG.eths_num++;
-				strcpy(CONFIG.eths[eidx].dev_name, iter_if->ifa_name);
-				strcpy(ifr.ifr_name, iter_if->ifa_name);
-
-				/* Create socket */
-				int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-				if (sock == -1) {
-					perror("socket");
-					exit(EXIT_FAILURE);
-				}			
-				
-				/* getting address */
-				if (ioctl(sock, SIOCGIFADDR, &ifr) == 0 ) {
-					struct in_addr sin = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
-					CONFIG.eths[eidx].ip_addr = *(uint32_t *)&sin;
-				}
-
-				if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0 ) {
-					for (j = 0; j < ETH_ALEN; j ++) {
-						CONFIG.eths[eidx].haddr[j] = ifr.ifr_addr.sa_data[j];
-					}
-				}
-
-				/* Net MASK */
-				if (ioctl(sock, SIOCGIFNETMASK, &ifr) == 0) {
-					struct in_addr sin = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
-					CONFIG.eths[eidx].netmask = *(uint32_t *)&sin;
-				}
-				close(sock);
-				
-				for (j = 0; j < num_devices; j++) {
-					if (!memcmp(&CONFIG.eths[eidx].haddr[0], &ports_eth_addr[j],
-						    ETH_ALEN))
-						CONFIG.eths[eidx].ifindex = j;
-				}
-					    
-				/* add to attached devices */
-				for (j = 0; j < num_devices_attached; j++) {
-					if (devices_attached[j] == CONFIG.eths[eidx].ifindex) {
-						break;
-					}
-				}			
-				devices_attached[num_devices_attached] = CONFIG.eths[eidx].ifindex;
-				num_devices_attached++;
-				fprintf(stderr, "Total number of attached devices: %d\n",
-					num_devices_attached);
-				fprintf(stderr, "Interface name: %s\n", 
-					iter_if->ifa_name);
-			}
-			iter_if = iter_if->ifa_next;
-		} while (iter_if != NULL);
-		
-		freeifaddrs(ifap);
 #endif /* !DISABLE_DPDK */
 	} else if (current_iomodule_func == &netmap_module_func) {
 #ifndef DISABLE_NETMAP

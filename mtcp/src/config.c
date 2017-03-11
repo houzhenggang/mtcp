@@ -36,11 +36,13 @@ mystrtol(const char *nptr, int base)
 	int rval;
 	char *endptr;
 
+	errno = 0;
 	rval = strtol(nptr, &endptr, 10);
 	/* check for strtol errors */
 	if ((errno == ERANGE && (rval == LONG_MAX ||
 				 rval == LONG_MIN))
 	    || (errno != 0 && rval == 0)) {
+		fprintf(stderr, "strtol: [%s]\n", nptr);
 		perror("strtol");
 		exit(EXIT_FAILURE);
 	}
@@ -108,10 +110,6 @@ EnrollRouteTableEntry(char *optstr)
 			ifidx = devices[i].ifindex;
 			break;
 		}
-		if (ifidx == -1) {
-			TRACE_CONFIG("Interface %s does not exist!\n", dev);
-			exit(4);
-		}
 	} else if (current_iomodule_func == &dpdk_module_func) {
 		for (i = 0; i < num_devices; i++) {
 			if (strcmp(CONFIG.eths[i].dev_name, dev))
@@ -119,6 +117,10 @@ EnrollRouteTableEntry(char *optstr)
 			ifidx = CONFIG.eths[i].ifindex;
 			break;
 		}
+	}
+	if (ifidx == -1) {
+		TRACE_CONFIG("Interface %s does not exist!\n", dev);
+		exit(4);
 	}
 
 	ridx = CONFIG.routes++;
@@ -305,7 +307,7 @@ PrintInterfaceInfo()
 	int i;
 		
 	/* print out process start information */
-	TRACE_CONFIG("Interfaces:\n");
+	TRACE_CONFIG("Interfaces (count %d):\n", CONFIG.eths_num);
 	for (i = 0; i < CONFIG.eths_num; i++) {
 			
 		uint8_t *da = (uint8_t *)&CONFIG.eths[i].ip_addr;
