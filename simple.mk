@@ -1,0 +1,7 @@
+OBJFILES=mtcp/src/core.o mtcp/src/tcp_stream.o mtcp/src/config.o mtcp/src/api.o mtcp/src/eventpoll.o mtcp/src/socket.o mtcp/src/pipe.o mtcp/src/tcp_util.o mtcp/src/eth_in.o mtcp/src/ip_in.o mtcp/src/tcp_in.o mtcp/src/eth_out.o mtcp/src/ip_out.o mtcp/src/tcp_out.o mtcp/src/arp.o mtcp/src/timer.o mtcp/src/cpu.o mtcp/src/rss.o mtcp/src/addr_pool.o mtcp/src/fhash.o mtcp/src/memory_mgt.o mtcp/src/logger.o mtcp/src/debug.o mtcp/src/tcp_rb_frag_queue.o mtcp/src/tcp_ring_buffer.o mtcp/src/tcp_send_buffer.o mtcp/src/tcp_sb_queue.o mtcp/src/tcp_stream_queue.o mtcp/src/psio_module.o mtcp/src/io_module.o mtcp/src/dpdk_module.o mtcp/src/netmap_module.o mtcp/src/icmp.o
+
+CFLAGS=-m64 -Wall -fPIC -fgnu89-inline -Werror -Og -g -DNETSTAT -DINFO -DDBGERR -DDBGCERR  -DHUGEPAGE -Imtcp/src/include -DDISABLE_PSIO -DDISABLE_NETMAP -Iio_engine/include -march=native -DRTE_MACHINE_CPUFLAG_SSE -DRTE_MACHINE_CPUFLAG_SSE2 -DRTE_MACHINE_CPUFLAG_SSE3 -DRTE_MACHINE_CPUFLAG_SSSE3 -DRTE_MACHINE_CPUFLAG_SSE4_1 -DRTE_MACHINE_CPUFLAG_SSE4_2 -DRTE_MACHINE_CPUFLAG_PCLMULQDQ -DRTE_MACHINE_CPUFLAG_AVX -DRTE_COMPILE_TIME_CPUFLAGS=RTE_CPUFLAG_SSE,RTE_CPUFLAG_SSE2,RTE_CPUFLAG_SSE3,RTE_CPUFLAG_SSSE3,RTE_CPUFLAG_SSE4_1,RTE_CPUFLAG_SSE4_2,RTE_CPUFLAG_PCLMULQDQ,RTE_CPUFLAG_AVX -I/usr/local/include/dpdk -include /usr/local/include/dpdk/rte_config.h
+
+all: $(OBJFILES)
+	bsdtar --format=ar -cf mtcp/lib/libmtcp.a mtcp/src/*.o
+	ranlib mtcp/lib/libmtcp.a
